@@ -6,8 +6,8 @@ __pycache__/
 *.pyc
 *.log
 
-data/
-*.csv
+
+
 other_files/
 plaid_csv_discard/
 data_discard/
