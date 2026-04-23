@@ -11,7 +11,11 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.ensemble import StackingClassifier
+from sklearn.linear_model import LogisticRegression
 from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, auc, roc_curve
 
 # Configuration
@@ -109,13 +113,22 @@ def build_pipeline(X_train, y_train, preprocessing):
     """Constructs the classification pipeline without fitting."""
     scale_pos_weight = (len(y_train) - y_train.sum()) / y_train.sum()
 
+    estimators = [
+        ('xgb',  XGBClassifier(scale_pos_weight=scale_pos_weight, random_state=11)),
+        ('lgbm', LGBMClassifier(class_weight='balanced', verbose=-1, random_state=11)),
+        ('hgb',  HistGradientBoostingClassifier(class_weight='balanced', random_state=11))
+    ]
+
+    stack = StackingClassifier(
+        estimators=estimators,
+        final_estimator=LogisticRegression(),  # meta-learner
+        cv=5,
+        stack_method='predict_proba'
+    )
+
     pipeline = Pipeline([          
         ('preprocessing', preprocessing),
-        ('model', XGBClassifier(
-            eval_metric='logloss',
-            scale_pos_weight=scale_pos_weight,
-            random_state=11
-        ))
+        ('model', stack)
     ])
 
     return pipeline
@@ -123,32 +136,33 @@ def build_pipeline(X_train, y_train, preprocessing):
 def hyper_tuning(pipeline, X_train, y_train):
     """Executes hyperparameter optimization via RandomizedSearchCV."""
     param_grid = {
-        'model__n_estimators':     [100, 200, 400],
-        'model__max_depth':        [3, 4, 5, 6],
-        'model__learning_rate':    [0.01, 0.05, 0.1],
-        'model__subsample':        [0.6, 0.8, 1.0],
-        'model__colsample_bytree': [0.6, 0.8, 1.0],
-        'model__min_child_weight': [1, 3, 5],
-        'model__reg_alpha':        [0, 0.1, 1.0],
-        'model__reg_lambda':       [1.0, 2.0, 5.0]
+        # XGBoost params — prefixed with 'xgb__'
+        'xgb__n_estimators':      [100, 200, 400],
+        'xgb__max_depth':         [3, 4, 5],
+        'xgb__learning_rate':     [0.01, 0.05, 0.1],
+        'xgb__subsample':         [0.6, 0.8, 1.0],
+        'xgb__colsample_bytree':  [0.6, 0.8, 1.0],
+
+        # LightGBM params — prefixed with 'lgbm__'
+        'lgbm__n_estimators':     [100, 300, 500],
+        'lgbm__num_leaves':       [31, 63, 127],
+        'lgbm__learning_rate':    [0.01, 0.05, 0.1],
+
+        # HGB params — prefixed with 'hgb__'
+        'hgb__max_iter':          [100, 200, 400],
+        'hgb__max_depth':         [3, 4, 5],
+        'hgb__learning_rate':     [0.01, 0.05, 0.1],
+
+        # Meta-learner params — prefixed with 'final_estimator__'
+        'final_estimator__C':     [0.01, 0.1, 1.0, 10.0]
     }
 
-    search = RandomizedSearchCV(
-        pipeline,
-        param_distributions=param_grid,
-        n_iter=50,
-        scoring='roc_auc',
-        cv=5,
-        random_state=11,
-        n_jobs=-1
-    )
-
-    search.fit(X_train, y_train)
+ 
 
     print(f"Cross-validation Best AUC: {search.best_score_:.4f}")
     print(f"Optimal Parameters: {search.best_params_}")
 
-    return search.best_estimator_
+    return 
 
 def evaluate_model(fitted_pipeline, X_test, y_test):
     """Computes test set ROC AUC metrics using the optimized estimator."""
