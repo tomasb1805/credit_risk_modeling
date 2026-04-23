@@ -72,6 +72,18 @@ def add_missing_flags(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Engineer interaction features to improve AUC scoring.
+    """
+    df['debt_to_income']       = df['loan_amount'] / df['income']
+    df['rate_per_term']        = df['interest_rate'] / df['loan_term']
+    df['credit_utilisation']   = df['loan_amount'] / df['credit_score']
+    df['employment_stability'] = df['months_employed'] * df['income']
+
+    return df
+
+
 def preprocess_df(df: pd.DataFrame):
     """
     Preprocess the DataFrame for model instatiation.
@@ -85,10 +97,9 @@ def preprocess_df(df: pd.DataFrame):
     numerical_features = ['age', 'income', 'loan_amount', 'credit_score', 'months_employed',
                           'num_credit_lines', 'interest_rate', 'loan_term', 'dti_ratio',
                           'has_mortgage', 'has_dependents', 'has_cosigner', 'avg_monthly_inflow',
-                          'income_stability_ratio', 'spend_to_income_ratio', 
-                          'age', 'income', 'debt_to_income', 'rate_per_term', 'credit_utilisation',
-                          'employment_stability'
-                          'cash_withdrawal_ratio'
+                          'income_stability_ratio', 'spend_to_income_ratio',
+                          'debt_to_income', 'rate_per_term', 'credit_utilisation',
+                          'employment_stability', 'cash_withdrawal_ratio'
 
                           
                         #   'months_net_negative_6m',
@@ -112,7 +123,21 @@ def preprocess_df(df: pd.DataFrame):
     )
     return X_train, X_test, y_train, y_test, preprocessing
 
-def build_pipeline(X_train, y_train, preprocessing):
+def features_selection(pipeline):
+
+    feature_names = (
+        pipeline.named_steps['preprocessing']
+        .get_feature_names_out()
+    )
+    importances = pipeline.named_steps['model'].feature_importances_
+
+    fi_df = pd.DataFrame({'feature': feature_names, 'importance': importances})
+    fi_df = fi_df.sort_values('importance', ascending=False)
+    print(fi_df.head())
+
+    return fi_df
+
+def build_pipeline(y_train, preprocessing):
     """
     Constructs the classification pipeline without fitting.
     """
@@ -199,11 +224,13 @@ if __name__ == "__main__":
     df = load_model_table()
     df = assign_mainstream_refine(df)
     df = add_missing_flags(df)
+    df = feature_engineering(df)
 
     X_train, X_test, y_train, y_test, preprocessor = preprocess_df(df)
 
-    model_pipeline = build_pipeline(X_train, y_train, preprocessor)
+    model_pipeline = build_pipeline(y_train, preprocessor)
     tuned_pipeline = hyper_tuning(model_pipeline, X_train, y_train)
+    features_selection(tuned_pipeline)
     y_true, y_probs = evaluate_model(tuned_pipeline, X_test, y_test)
     
     plot_roc_auc(y_true, y_probs)
