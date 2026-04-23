@@ -80,9 +80,15 @@ def preprocess_df(df: pd.DataFrame):
     numerical_features = ['age', 'income', 'loan_amount', 'credit_score', 'months_employed',
                           'num_credit_lines', 'interest_rate', 'loan_term', 'dti_ratio',
                           'has_mortgage', 'has_dependents', 'has_cosigner', 'avg_monthly_inflow',
-                          'income_stability_ratio', 'spend_to_income_ratio', 'months_net_negative_6m',
-                          'cash_withdrawal_ratio', 'avg_monthly_inflow_missing', 'income_stability_ratio_missing',
-                          'spend_to_income_ratio_missing', 'months_net_negative_6m_missing', 'cash_withdrawal_ratio_missing']
+                          'income_stability_ratio', 'spend_to_income_ratio', 
+                          # 'months_net_negative_6m',
+                          'age', 'income', 'debt_to_income', 'rate_per_term', 'credit_utilisation',
+                          'employment_stability'
+                          'cash_withdrawal_ratio',
+                        #   'avg_monthly_inflow_missing', 'income_stability_ratio_missing',
+                        #   'spend_to_income_ratio_missing', 'months_net_negative_6m_missing',
+                        #   'cash_withdrawal_ratio_missing'
+                        ]
 
     categorical_features = ['education', 'employment_type', 'marital_status', 'loan_purpose']
 
