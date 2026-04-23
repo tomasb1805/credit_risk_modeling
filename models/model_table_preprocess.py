@@ -11,11 +11,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
-from sklearn.ensemble import StackingClassifier
-from sklearn.linear_model import LogisticRegression
 from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
-from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, auc, roc_curve
 
 # Configuration
@@ -28,7 +24,9 @@ except NameError:
 TABLE = os.getenv("MODEL_TABLE_PATH")
 
 def load_model_table(table_path: str = TABLE) -> pd.DataFrame:
-    """Load the database table to be preprocessed."""
+    """
+    Load the database table to be preprocessed.
+    """
     return pd.read_csv(table_path)
 
 def refine_mainstream(row: pd.Series) -> str:
@@ -49,7 +47,7 @@ def refine_mainstream(row: pd.Series) -> str:
 
 def assign_mainstream_refine(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Assign the 'mainstream' persona refinement to the DataFrame.
+    Assign the 'mainstream' persona refinement to the DataFrame relevant rows.
     """
     df_refined = df.copy()
     mask = df['persona_name'] == 'mainstream'
@@ -60,21 +58,24 @@ def assign_mainstream_refine(df: pd.DataFrame) -> pd.DataFrame:
 
 def add_missing_flags(df: pd.DataFrame) -> pd.DataFrame:
     """
-    For mainstream rows, behavioral features are NaN.
-    Add binary flags so the model knows the absence is informative.
+    For mainstream rows, the behavioral features are NaN.
+    Add the "_missing_" flag so the model knows understands the absence is intended.
     """
     behavioral_cols = [
         'avg_monthly_inflow', 'income_stability_ratio',
         'spend_to_income_ratio', 'months_net_negative_6m',
         'cash_withdrawal_ratio'
     ]
+
     for col in behavioral_cols:
         df[f'{col}_missing'] = df[col].isna().astype(int)
 
     return df
 
 def preprocess_df(df: pd.DataFrame):
-    """Preprocess and partition DataFrame."""
+    """
+    Preprocess the DataFrame for model instatiation.
+    """
     df_model = df.copy()
     cols = ['persona_name', 'loan_id', 'years_employed', 'loan_term_years', 'default', 'dti_ratio_pct']
 
@@ -85,10 +86,12 @@ def preprocess_df(df: pd.DataFrame):
                           'num_credit_lines', 'interest_rate', 'loan_term', 'dti_ratio',
                           'has_mortgage', 'has_dependents', 'has_cosigner', 'avg_monthly_inflow',
                           'income_stability_ratio', 'spend_to_income_ratio', 
-                          # 'months_net_negative_6m',
                           'age', 'income', 'debt_to_income', 'rate_per_term', 'credit_utilisation',
                           'employment_stability'
-                          'cash_withdrawal_ratio',
+                          'cash_withdrawal_ratio'
+
+                          
+                        #   'months_net_negative_6m',
                         #   'avg_monthly_inflow_missing', 'income_stability_ratio_missing',
                         #   'spend_to_income_ratio_missing', 'months_net_negative_6m_missing',
                         #   'cash_withdrawal_ratio_missing'
@@ -110,62 +113,63 @@ def preprocess_df(df: pd.DataFrame):
     return X_train, X_test, y_train, y_test, preprocessing
 
 def build_pipeline(X_train, y_train, preprocessing):
-    """Constructs the classification pipeline without fitting."""
+    """
+    Constructs the classification pipeline without fitting.
+    """
     scale_pos_weight = (len(y_train) - y_train.sum()) / y_train.sum()
 
-    estimators = [
-        ('xgb',  XGBClassifier(scale_pos_weight=scale_pos_weight, random_state=11)),
-        ('lgbm', LGBMClassifier(class_weight='balanced', verbose=-1, random_state=11)),
-        ('hgb',  HistGradientBoostingClassifier(class_weight='balanced', random_state=11))
-    ]
-
-    stack = StackingClassifier(
-        estimators=estimators,
-        final_estimator=LogisticRegression(),  # meta-learner
-        cv=5,
-        stack_method='predict_proba'
-    )
-
-    pipeline = Pipeline([          
+    pipeline = Pipeline([
         ('preprocessing', preprocessing),
-        ('model', stack)
-    ])
+        ('model', XGBClassifier(
+            n_estimators=200,
+            learning_rate=0.1,
+            max_depth=4,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            eval_metric='logloss',
+            scale_pos_weight=scale_pos_weight,
+            random_state=11
+        ))
+    ])     
 
     return pipeline
 
 def hyper_tuning(pipeline, X_train, y_train):
-    """Executes hyperparameter optimization via RandomizedSearchCV."""
+    """
+    Launch hyperparameter tuning via RandomizedSearchCV.
+    """
     param_grid = {
-        # XGBoost params — prefixed with 'xgb__'
-        'xgb__n_estimators':      [100, 200, 400],
-        'xgb__max_depth':         [3, 4, 5],
-        'xgb__learning_rate':     [0.01, 0.05, 0.1],
-        'xgb__subsample':         [0.6, 0.8, 1.0],
-        'xgb__colsample_bytree':  [0.6, 0.8, 1.0],
-
-        # LightGBM params — prefixed with 'lgbm__'
-        'lgbm__n_estimators':     [100, 300, 500],
-        'lgbm__num_leaves':       [31, 63, 127],
-        'lgbm__learning_rate':    [0.01, 0.05, 0.1],
-
-        # HGB params — prefixed with 'hgb__'
-        'hgb__max_iter':          [100, 200, 400],
-        'hgb__max_depth':         [3, 4, 5],
-        'hgb__learning_rate':     [0.01, 0.05, 0.1],
-
-        # Meta-learner params — prefixed with 'final_estimator__'
-        'final_estimator__C':     [0.01, 0.1, 1.0, 10.0]
+        'model__n_estimators':     [100, 200, 400],
+        'model__max_depth':        [3, 4, 5, 6],
+        'model__learning_rate':    [0.01, 0.05, 0.1],
+        'model__subsample':        [0.6, 0.8, 1.0],
+        'model__colsample_bytree': [0.6, 0.8, 1.0],
+        'model__min_child_weight': [1, 3, 5],
+        'model__reg_alpha':        [0, 0.1, 1.0],
+        'model__reg_lambda':       [1.0, 2.0, 5.0]
     }
 
- 
+    search = RandomizedSearchCV(
+        pipeline,
+        param_distributions=param_grid,
+        n_iter=50,
+        scoring='roc_auc',
+        cv=5,
+        random_state=11,
+        n_jobs=-1
+    )
+
+    search.fit(X_train, y_train)
 
     print(f"Cross-validation Best AUC: {search.best_score_:.4f}")
     print(f"Optimal Parameters: {search.best_params_}")
 
-    return 
+    return search.best_estimator_
 
 def evaluate_model(fitted_pipeline, X_test, y_test):
-    """Computes test set ROC AUC metrics using the optimized estimator."""
+    """
+    Computes the ROC AUC metrics using the optimized estimator.
+    """
     y_pred_proba = fitted_pipeline.predict_proba(X_test)[:, 1]
     test_auc = roc_auc_score(y_test, y_pred_proba)
 
@@ -174,7 +178,9 @@ def evaluate_model(fitted_pipeline, X_test, y_test):
     return y_test, y_pred_proba
 
 def plot_roc_auc(y_test, y_pred_proba):
-    """Generate ROC AUC visualization."""
+    """
+    Generate ROC AUC plot.
+    """
     plt.figure(figsize=(7, 5))
 
     fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
@@ -193,16 +199,11 @@ if __name__ == "__main__":
     df = load_model_table()
     df = assign_mainstream_refine(df)
     df = add_missing_flags(df)
+
     X_train, X_test, y_train, y_test, preprocessor = preprocess_df(df)
 
-    # Instantiate un-fitted pipeline
     model_pipeline = build_pipeline(X_train, y_train, preprocessor)
-    
-    # Execute cross-validation tuning
     tuned_pipeline = hyper_tuning(model_pipeline, X_train, y_train)
-    
-    # Evaluate optimized estimator on holdout set
     y_true, y_probs = evaluate_model(tuned_pipeline, X_test, y_test)
     
-    # Render diagnostics
     plot_roc_auc(y_true, y_probs)
