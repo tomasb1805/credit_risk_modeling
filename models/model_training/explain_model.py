@@ -87,7 +87,7 @@ def plot_shap_summary(shap_values, max_display: int = 20):
     Each dot is one applicant; colour = feature value (red=high, blue=low).
     Ranked by mean |SHAP| — shows which features drive default risk most.
     """
-    plt.figure()
+    fig = plt.figure()
     shap.plots.beeswarm(
         shap_values,
         max_display=max_display,
@@ -96,6 +96,7 @@ def plot_shap_summary(shap_values, max_display: int = 20):
     plt.title('SHAP Summary — Global Feature Impact on Default Probability')
     plt.tight_layout()
     plt.show()
+    plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -119,7 +120,7 @@ def plot_shap_dependence(shap_values, pipeline, X_test: pd.DataFrame,
 
     for idx in top_indices:
         feat_name = feature_names[idx]
-        plt.figure(figsize=(7, 4))
+        fig = plt.figure(figsize=(7, 4))
         shap.dependence_plot(
             ind=idx,
             shap_values=shap_matrix,
@@ -131,6 +132,7 @@ def plot_shap_dependence(shap_values, pipeline, X_test: pd.DataFrame,
         plt.title(f'SHAP Dependence — {feat_name}')
         plt.tight_layout()
         plt.show()
+        plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +174,7 @@ def plot_waterfall(shap_values, pipeline, X_test: pd.DataFrame,
     )
     plt.tight_layout()
     plt.show()
+    plt.close(fig)
 
 
 def plot_example_applicants(shap_values, pipeline, X_test: pd.DataFrame,

@@ -1,3 +1,4 @@
+from evaluate_model import plot_precision_recall
 from build_model_dataset import (
     load_model_table,
     assign_mainstream_refine,
@@ -38,6 +39,7 @@ if __name__ == "__main__":
     # tuned_pipeline from step 2 flows into evaluate_model
     y_true, y_proba = evaluate_model(tuned_pipeline, X_test, y_test)
     plot_roc_auc(y_true, y_proba)
+    plot_precision_recall(tuned_pipeline, X_test, y_test)
 
     # === STEP 4: Explain ===
     # Both tuned_pipeline (step 2) and X_train/X_test (step 1) flow in here

@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 
 # Machine learning + eval libraries
-from sklearn.metrics import roc_auc_score, auc, roc_curve
+from sklearn.metrics import roc_auc_score, auc, roc_curve, precision_recall_curve, average_precision_score
 
 
 
@@ -19,9 +19,9 @@ def evaluate_model(fitted_pipeline, X_test, y_test):
 
 def plot_roc_auc(y_test, y_pred_proba):
     """
-    Generate ROC AUC plot.
+    Plots the ROC-AUC curve.
     """
-    plt.figure(figsize=(7, 5))
+    fig = plt.figure(figsize=(7, 5))
 
     fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
     roc_auc = auc(fpr, tpr)
@@ -34,3 +34,33 @@ def plot_roc_auc(y_test, y_pred_proba):
     plt.title('ROC Curve for XGBoost Model')
     plt.legend(loc="lower right")
     plt.show()
+    plt.close(fig)
+
+
+def plot_precision_recall(fitted_pipeline, X_test, y_test):
+    """
+    Plots the Precision-Recall curve.
+    """
+    y_proba    = fitted_pipeline.predict_proba(X_test)[:, 1]
+    avg_prec   = average_precision_score(y_test, y_proba)
+    baseline   = y_test.mean() 
+
+    precision, recall, _ = precision_recall_curve(y_test, y_proba)
+    
+    mask = recall >= 0.01
+
+    plt.figure(figsize=(7, 5))
+    plt.plot(recall[mask], precision[mask], label=f'XGBoost (AP = {avg_prec:.3f})', color='steelblue')
+    plt.axhline(y=baseline, color='red', linestyle='--',
+                label=f'Random Classifier (baseline = {baseline:.3f})')
+
+    plt.xlabel('Recall  (fraction of defaulters correctly flagged)')
+    plt.ylabel('Precision  (fraction of flagged who actually default)')
+    plt.title('Precision-Recall Curve — XGBoost Credit Risk Model')
+    plt.legend(loc='upper right')
+    plt.tight_layout()
+    plt.show()
+
+    print(f"Average Precision (AP): {avg_prec:.4f}")
+    return avg_prec
+

@@ -1,6 +1,7 @@
 # Python libraries
 import os
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -76,7 +77,7 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     df['debt_to_income']       = df['loan_amount'] / df['income']
     df['rate_per_term']        = df['interest_rate'] / df['loan_term']
     df['credit_utilisation']   = df['loan_amount'] / df['credit_score']
-    df['employment_stability'] = df['months_employed'] * df['income']
+    df['employment_stability'] = np.log1p(df['income'] * df['months_employed'])
 
     return df
 
