@@ -40,7 +40,7 @@ Financial ratios are engineered to capture borrower leverage and stability, incl
 - rate_per_term
 - credit_utilisation
 - employment_stability
-[being computed as $\ln(1 + \text{income} \times \text{months\_employed})$]
+[being computed as: $\ln(1 + \text{income} \times \text{months-employed})$ ]
 
 Missing transactional data for the default mainstream persona is addressed via explicit flag indicators (_missing flags) to preserve structural information.
 
