@@ -24,6 +24,7 @@
 
 - [Model Persistence](#model-persistence)
 - [Limitations & Future Work](#limitations--future-work)
+- [Author](#author)
 
 ---
 
@@ -133,6 +134,24 @@ The `mainstream` persona — the largest group — is further **refined into sub
 | `mainstream-low-income` | Income ≤ £40k and DTI ≤ 0.40 |
 | `mainstream-leveraged` | DTI > 0.50 regardless of income |
 | `mainstream-other` | All remaining mainstream applicants |
+
+---
+
+## Results
+
+```
+Dataset:         51,000 loan applications
+Default rate:    11.6% (class imbalance handled via scale_pos_weight ≈ 7.6)
+Train/test split: 80/20, stratified
+
+Cross-validation (5-fold):   AUC = 0.76
+Out-of-sample Test:          AUC = 0.76
+Average Precision (AP):      0.320
+Random baseline (AP):        0.116
+Lift over random:            2.76×
+```
+
+> 📊 See sections [SHAP Beeswarm Plot](#step-7--shap-explainability) for global feature importance and [Precision-Recall Curve](#step-6--model-evaluation) for full evaluation visuals.
 
 ---
 
@@ -392,24 +411,6 @@ This decision framework transforms the continuous model output into actionable l
 
 ---
 
-## Results
-
-```
-Dataset:         51,000 loan applications
-Default rate:    11.6% (class imbalance handled via scale_pos_weight ≈ 7.6)
-Train/test split: 80/20, stratified
-
-Cross-validation (5-fold):   AUC = 0.76
-Out-of-sample Test:          AUC = 0.76
-Average Precision (AP):      0.320
-Random baseline (AP):        0.116
-Lift over random:            2.76×
-```
-
-> 📊 See sections [SHAP Beeswarm Plot](#step-7--shap-explainability) for global feature importance and [Precision-Recall Curve](#step-6--model-evaluation) for full evaluation visuals.
-
----
-
 ## Model Persistence
 
 The trained pipeline — including the fitted `ColumnTransformer` preprocessor and the optimised `XGBClassifier` — is serialised to disk using `joblib`, enabling deployment without retraining:
@@ -459,7 +460,33 @@ Footnotes at the end of the project will redirect the viewer for further researc
 
 ## Author
 
-Built as a Data Science portfolio project demonstrating end-to-end ML system design, credit risk domain knowledge, and production-aware engineering practices.
+<p align="center" width="100%">
+  <img src="https://media.licdn.com/dms/image/v2/D4E03AQEdUyPJ214v6A/profile-displayphoto-scale_400_400/B4EZ0r2BM5GQAg-/0/1774557089062?e=1778716800&v=beta&t=mijF_K6kMXpY6V2LFyWVSgbs823I82DXjhQwZQrxCU4" width="15%">
+</p>
+
+<p align="center">
+  <strong>Brian Tomassoni</strong><br>
+  <em>Data Analyst · Data Scientist · ML Engineer · Credit Risk Domain</em>
+</p>
+
+<p align="center">
+  <a href="https://www.linkedin.com/in/brian-tomassoni">
+    <img src="https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
+  </a>
+  &nbsp;
+  <a href="https://github.com/tomasb1805">
+    <img src="https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
+  </a>
+  &nbsp;
+  <a href="mailto:tmsbrn2019@proton.me">
+    <img src="https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email">
+  </a>
+</p>
+
+<p align="center">
+  Built as a portfolio project demonstrating end-to-end ML system design,<br>
+  credit risk domain knowledge, and production-aware engineering practices.
+</p>
 
 ## Footnotes
 
