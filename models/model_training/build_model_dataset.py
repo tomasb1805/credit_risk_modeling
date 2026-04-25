@@ -12,7 +12,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
 
-# Configuration
+# configuration
 load_dotenv()
 try:
     BASE_DIR = Path(__file__).resolve().parent.parent

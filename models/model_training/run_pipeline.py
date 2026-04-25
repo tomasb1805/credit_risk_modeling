@@ -21,28 +21,25 @@ import numpy as np
 
 if __name__ == "__main__":
 
-    # === STEP 1: Prepare data ===
+
     df = load_model_table()
     df = assign_mainstream_refine(df)
     df = add_missing_flags(df)
     df = feature_engineering(df)
 
-    # preprocess_df returns splits + preprocessor — all stored in variables
+    # preparing the data with preprocess_df function
     X_train, X_test, y_train, y_test, preprocessor, df_test = preprocess_df(df)
 
-    # === STEP 2: Train ===
-    # Pass the outputs of step 1 directly into the training functions
+    # Pass the outputs of data preparing step directly into the training functions
     model_pipeline = build_pipeline(y_train, preprocessor)
     tuned_pipeline = hyper_tuning(model_pipeline, X_train, y_train)
 
-    # === STEP 3: Evaluate ===
-    # tuned_pipeline from step 2 flows into evaluate_model
+    # tuned_pipeline flows into evaluate_model
     y_true, y_proba = evaluate_model(tuned_pipeline, X_test, y_test)
     plot_roc_auc(y_true, y_proba)
     plot_precision_recall(tuned_pipeline, X_test, y_test)
 
-    # === STEP 4: Explain ===
-    # Both tuned_pipeline (step 2) and X_train/X_test (step 1) flow in here
+    # Both tuned_pipeline and X_train/X_test flow in here
     explainer   = build_shap_explainer(tuned_pipeline, X_train)
 
     sample_idx  = np.random.default_rng(11).choice(len(X_test), 2000, replace=False)

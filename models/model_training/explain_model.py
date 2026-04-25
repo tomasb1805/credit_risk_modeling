@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import pandas as pd
 
-# ---------------------------------------------------------------------------
-# Underwriting policy
-# ---------------------------------------------------------------------------
+
+# example of underwriting policy
 
 APPROVE_THRESHOLD = 0.20   # bad rate ~2.2% — within loss tolerance
 REFER_THRESHOLD   = 0.35   # bad rate ~3.9% — borderline, human review
@@ -21,9 +20,8 @@ def underwriting_decision(probability: float) -> str:
         return 'DECLINE'
 
 
-# ---------------------------------------------------------------------------
-# Helpers: extract readable feature names from the pipeline
-# ---------------------------------------------------------------------------
+
+# extract readable feature names from the pipeline
 
 def get_feature_names(pipeline) -> list:
     """
@@ -34,7 +32,7 @@ def get_feature_names(pipeline) -> list:
         pipeline.named_steps['preprocessing']
         .get_feature_names_out()
     )
-    # Remove 'num__' and 'cat__' prefixes added by ColumnTransformer
+
     clean = [n.replace('num__', '').replace('cat__', '') for n in raw_names]
     return clean
 
@@ -47,9 +45,8 @@ def get_shap_input(pipeline, X: pd.DataFrame) -> np.ndarray:
     return pipeline.named_steps['preprocessing'].transform(X)
 
 
-# ---------------------------------------------------------------------------
-# SHAP explainer setup
-# ---------------------------------------------------------------------------
+
+# SHAP setup
 
 def build_shap_explainer(pipeline, X_train: pd.DataFrame):
     """
@@ -77,9 +74,8 @@ def compute_shap_values(explainer, pipeline, X: pd.DataFrame):
     return shap_values
 
 
-# ---------------------------------------------------------------------------
-# Plot 1 — SHAP Summary (Beeswarm)
-# ---------------------------------------------------------------------------
+
+# SHAP Beeswarm Summary 
 
 def plot_shap_summary(shap_values, max_display: int = 20):
     """
@@ -99,9 +95,8 @@ def plot_shap_summary(shap_values, max_display: int = 20):
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Plot 2 — Dependence Plots for Top Features
-# ---------------------------------------------------------------------------
+
+# Top Features - plot for individual contributions to model  
 
 def plot_shap_dependence(shap_values, pipeline, X_test: pd.DataFrame,
                          top_n: int = 5):
@@ -114,7 +109,7 @@ def plot_shap_dependence(shap_values, pipeline, X_test: pd.DataFrame,
     feature_names = get_feature_names(pipeline)
     shap_matrix   = shap_values.values
 
-    # Rank features by mean |SHAP|
+
     mean_abs_shap = np.abs(shap_matrix).mean(axis=0)
     top_indices   = np.argsort(mean_abs_shap)[::-1][:top_n]
 
@@ -126,7 +121,7 @@ def plot_shap_dependence(shap_values, pipeline, X_test: pd.DataFrame,
             shap_values=shap_matrix,
             features=X_t,
             feature_names=feature_names,
-            interaction_index='auto',   # auto-selects best interaction feature
+            interaction_index='auto',
             show=False
         )
         plt.title(f'SHAP Dependence — {feat_name}')
@@ -135,9 +130,10 @@ def plot_shap_dependence(shap_values, pipeline, X_test: pd.DataFrame,
         plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Plot 3 — Waterfall Plot for Individual Applicants
-# ---------------------------------------------------------------------------
+
+# Waterfall Plot for individual applicants
+# explains how their features contributed to the 
+# final underwriting outcome/decision
 
 def plot_waterfall(shap_values, pipeline, X_test: pd.DataFrame,
                    y_proba: np.ndarray, applicant_idx: int):
@@ -198,31 +194,22 @@ def plot_example_applicants(shap_values, pipeline, X_test: pd.DataFrame,
         plot_waterfall(shap_values, pipeline, X_test, y_proba, idx)
 
 
-# ---------------------------------------------------------------------------
-# Entry point — add to __main__ after evaluate_model()
-# ---------------------------------------------------------------------------
-
 if __name__ == "__main__":
-
-    # --- After fitting tuned_pipeline and splitting data ---
 
     y_proba = tuned_pipeline.predict_proba(X_test)[:, 1]
 
-    # 1. Build explainer (uses training data as background distribution)
+    
     explainer   = build_shap_explainer(tuned_pipeline, X_train)
 
-    # 2. Compute SHAP values for the test set
-    #    Use a sample of 2000 for speed — full 10k test set is slow
+    # compute SHAP values for the test set.
+    # using a sample of 2000 for speed
     sample_idx  = np.random.default_rng(11).choice(len(X_test), 2000, replace=False)
     X_sample    = X_test.iloc[sample_idx]
     shap_values = compute_shap_values(explainer, tuned_pipeline, X_sample)
     y_proba_sample = y_proba[sample_idx]
 
-    # 3. Global summary — which features matter most overall
     plot_shap_summary(shap_values, max_display=20)
 
-    # 4. Dependence plots — how top features drive risk
     plot_shap_dependence(shap_values, tuned_pipeline, X_sample, top_n=5)
 
-    # 5. Waterfall — one example per underwriting band
     plot_example_applicants(shap_values, tuned_pipeline, X_sample, y_proba_sample)

@@ -23,7 +23,7 @@ def features_selection(pipeline):
 
 def build_pipeline(y_train, preprocessing):
     """
-    Constructs the classification pipeline without fitting.
+    Constructs the classification pipeline.
     """
     scale_pos_weight = (len(y_train) - y_train.sum()) / y_train.sum()
 
@@ -45,7 +45,7 @@ def build_pipeline(y_train, preprocessing):
 
 def hyper_tuning(pipeline, X_train, y_train):
     """
-    Launch hyperparameter tuning via RandomizedSearchCV.
+    Process hyperparameter tuning using RandomizedSearchCV.
     """
     param_grid = {
         'model__n_estimators':     [100, 200, 400],

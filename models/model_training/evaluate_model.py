@@ -1,14 +1,14 @@
 # Python libraries
 import matplotlib.pyplot as plt
 
-# Machine learning + eval libraries
+# metrics libraries
 from sklearn.metrics import roc_auc_score, auc, roc_curve, precision_recall_curve, average_precision_score
 
 
 
 def evaluate_model(fitted_pipeline, X_test, y_test):
     """
-    Computes the ROC AUC metrics using the optimized estimator.
+    Computes the ROC-AUC metrics using the optimized estimator.
     """
     y_pred_proba = fitted_pipeline.predict_proba(X_test)[:, 1]
     test_auc = roc_auc_score(y_test, y_pred_proba)
@@ -47,6 +47,9 @@ def plot_precision_recall(fitted_pipeline, X_test, y_test):
 
     precision, recall, _ = precision_recall_curve(y_test, y_proba)
     
+    # due to the synthetic and incomplete nature of the data
+    # a boolean mask is needed to assure the of the precision-recall curve
+    # can be easily interpreted
     mask = recall >= 0.01
 
     plt.figure(figsize=(7, 5))
