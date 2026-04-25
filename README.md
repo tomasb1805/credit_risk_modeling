@@ -56,7 +56,7 @@ This model targets a dataset of **51,000 loan applications** with an **11.6% his
 | **Language** | Python 3.12 |
 | **Environment** | Anaconda, `conda` virtual environment |
 | **Database** | PostgreSQL 16 (Remote Linux Server)|
-| **Database GUI** | DBeaver Community Edition, SQLTools fo VSCode |
+| **Database GUI** | DBeaver Community Edition, SQLTools for VSCode |
 | **Data Access** | SQLAlchemy, `psycopg2` |
 | **Behavioural Data** | Plaid API (Sandbox) |
 | **Data Processing** | pandas, NumPy |
