@@ -11,19 +11,18 @@
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Dataset & Personas](#dataset--personas)
+- [Results](#results)
 - [Pipeline Architecture](#pipeline-architecture)
   - [Step 1 — ETL Pipeline](#step-1--etl-pipeline)
   - [Step 2 — Database Management (PostgreSQL + DBeaver)](#step-2--database-management-postgresql--dbeaver)
-  - [Step 3 — Behavioural Features via Plaid API](#step-3--behavioural-features-via-plaid-api)
+  - [Step 3 — Behavioural Features via Plaid Sandbox API](#step-3--behavioural-features-via-plaid-sandbox-api)
   - [Step 4 — Feature Engineering & Preprocessing](#step-4--feature-engineering--preprocessing)
   - [Step 5 — Model Training & Hyperparameter Tuning](#step-5--model-training--hyperparameter-tuning)
   - [Step 6 — Model Evaluation](#step-6--model-evaluation)
   - [Step 7 — SHAP Explainability](#step-7--shap-explainability)
-  - [Step 8 — Underwriting Decision Engine](#step-8--underwriting-decision-engine)
-- [Results](#results)
+  - [Step 8 — Programmatic Underwriting Decision Policy](#step-8--programmatic-underwriting-decision-policy)
+
 - [Model Persistence](#model-persistence)
-- [How to Run](#how-to-run)
-- [Environment Setup](#environment-setup)
 - [Limitations & Future Work](#limitations--future-work)
 
 ---
@@ -55,8 +54,8 @@ This model targets a dataset of **51,000 loan applications** with an **11.6% his
 |---|---|
 | **Language** | Python 3.12 |
 | **Environment** | Anaconda, `conda` virtual environment |
-| **Database** | PostgreSQL 16 |
-| **Database GUI** | DBeaver Community Edition |
+| **Database** | PostgreSQL 16 (Remote Linux Server)|
+| **Database GUI** | DBeaver Community Edition, SQLTools fo VSCode |
 | **Data Access** | SQLAlchemy, `psycopg2` |
 | **Behavioural Data** | Plaid API (Sandbox) |
 | **Data Processing** | pandas, NumPy |
@@ -66,7 +65,7 @@ This model targets a dataset of **51,000 loan applications** with an **11.6% his
 | **Visualisation** | Matplotlib |
 | **Model Serialisation** | joblib / pickle |
 | **Config Management** | `python-dotenv` |
-| **IDE** | Visual Studio Code, Jupyter Notebook |
+| **IDE** | Posit "Positron" (Data Science IDE), Jupyter Notebook |
 
 ---
 
@@ -79,10 +78,7 @@ credit_risk/
 │   ├── raw/                        # Original source files — read-only, never modified
 │   └── processed/                  # Cleaned, enriched datasets output by the ETL pipeline
 │
-├── docs/                           # Project documentation, architecture diagrams
-│
 ├── models/
-│   ├── logs/                       # Training run logs, best params, AUC history
 │   ├── model_training/             # ML pipeline scripts (train, evaluate, explain, run)
 │   │   ├── run_pipeline.py         # Master entrypoint — orchestrates all steps
 │   │   ├── train_xgb_model.py      # Pipeline construction and hyperparameter tuning
@@ -97,7 +93,6 @@ credit_risk/
 ├── src/                            # Shared library code (ETL, feature engineering, utilities)
 │   └── etl.py                      # Full ETL pipeline: extract → validate → transform → load
 │
-├── .env                            # Environment variables (DB credentials, file paths) — gitignored
 ├── .gitignore
 └── requirements.txt                # Frozen Python dependencies
 ```
@@ -106,15 +101,15 @@ credit_risk/
 
 ## Dataset & Personas
 
-The raw dataset obtained from gigasheets.com contains **255k+ rows**, is complete with applicant demographics, financials, and loan attributes that can be used to analyze default drivers and train models.
-This raw dataset was enriched using the **Plaid Sandbox API** in order to simulate a realistic consumer transactional pattern in order to create a realistic loan portfolio. Each record includes:
+The raw dataset obtained contains **255k+ rows** and is complete with applicant demographics, financials, and loan attributes that can be used to analyze default drivers and train models.
+This raw dataset was enriched using the **Plaid Sandbox API** in order to simulate a realistic consumer transactional pattern and create a realistic loan portfolio. Each record includes:
 
 - **Applicant profile**: age, income, education, marital status, employment type
 - **Loan characteristics**: amount, term, interest rate, purpose
 - **Credit behaviour**: credit score, number of credit lines, DTI ratio, mortgage/cosigner flags
 - **Target variable**: `default` (1 = defaulted, 0 = repaid) — **11.6% default rate**
 
-Data sources: [ [1] ](#Footnotes)
+Data sources: [[1]](#footnotes)
 
 ### Risk Personas
 
@@ -261,7 +256,7 @@ Before training, several **derived features** are constructed from raw columns t
 | `credit_utilisation` | `loan_amount / (credit_score + 1)` | Loan size relative to creditworthiness |
 | `employment_stability` | `log1p(income × months_employed)` | Combined income and tenure signal, log-compressed to prevent scale distortion |
 
-The `log1p` transform on `employment_stability` is critical: the raw product of `income × months_employed` produces values in the millions, which would dominate the feature space and produce SHAP values of difficult human interpretability . `log1p(x)` compresses the range to ~8–15, keeps the monotonic relationship intact, and handles zero values safely.
+The `log1p` transform on `employment_stability` is critical: the raw product of `income × months_employed` produces values in the millions, which would dominate the feature space and produce uninterpretable SHAP values. `log1p(x)` compresses the range to ~8–15, keeps the monotonic relationship intact, and handles zero values safely.
 
 **Preprocessing** is handled by a scikit-learn `ColumnTransformer` inside the main `Pipeline`:
 
@@ -411,6 +406,8 @@ Random baseline (AP):        0.116
 Lift over random:            2.76×
 ```
 
+> 📊 See sections [SHAP Beeswarm Plot](#step-7--shap-explainability) for global feature importance and [Precision-Recall Curve](#step-6--model-evaluation) for full evaluation visuals.
+
 ---
 
 ## Model Persistence
@@ -429,58 +426,7 @@ probabilities = pipeline.predict_proba(new_applicants)[:, 1]
 ```
 
 Due to safety and cybersecurity reasons, the script and `.pkl` artifact are excluded from version control via `.gitignore`.
-To reproduce the saved model, run the training pipeline from source.
-
----
-
-## How to Run
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/credit-risk.git
-cd credit-risk
-
-# 2. Create and activate the conda environment
-conda create -n credit_risk python=3.12
-conda activate credit_risk
-pip install -r requirements.txt
-
-# 3. Configure environment variables
-cp .env.example .env
-# Edit .env with your PostgreSQL credentials and INPUT_PATH
-
-# 4. Run the ETL pipeline to load data into PostgreSQL
-python src/etl.py
-
-# 5. Run the full ML pipeline (train, evaluate, explain)
-python models/model_training/run_pipeline.py
-```
-
----
-
-## Environment Setup
-
-Create a `.env` file in the project root with the following variables:
-
-```env
-# Data
-INPUT_PATH=/path/to/data/raw/loan_default_prediction.csv
-MODEL_TABLE_PATH=/path/to/models/modeling_table.csv
-
-# PostgreSQL
-ADMIN=your_db_user
-PASSWORD=your_db_password
-HOST=localhost
-PORT=5432
-DB_NAME=credit_risk
-
-# Plaid API (Sandbox)
-PLAID_ENV=sandbox
-PLAID_CLIENT_ID=your_client_id
-PLAID_SANDBOX_SECRET=your_sandbox_secret
-PLAID_PRODUCTS=transactions
-PLAID_COUNTRY_CODES=GB
-```
+To reproduce the saved model, run the training pipeline from the data sources, included in the repository.
 
 ---
 
@@ -497,7 +443,7 @@ PLAID_COUNTRY_CODES=GB
 Note: 
 It is worth to highlight that UK regulators such as the Financial Conduct Authority (FCA) and the Information Commissioner's Office (ICO) do not impose a strict fixed-threshold or a defined mathematical approach to lending scoring, and they simply encourage that algorithmic processing systems must not produce unjustified adverse effects or discriminatory impacts.
 For the purpose of proof-of-concept and outlining a clearer project outcome, the USA Code of Federal Regulations Adversarial Impact approach (80% percent rule, or 4/5ths of the highest score class) is applied.
-Footnotes at the end of the project will redirect the viewer for further research: [ [2] ](#Footnotes)
+Footnotes at the end of the project will redirect the viewer for further research: [[2]](#footnotes)
 
 
 **Potential next steps:**
