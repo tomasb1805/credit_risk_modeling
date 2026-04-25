@@ -222,7 +222,7 @@ All secrets (database host, port, credentials, file paths) are managed via a `.e
 
 **Tools:** PostgreSQL 16, DBeaver Community Edition, SQLAlchemy
 
-Once the ETL pipeline runs, the clean loan data is loaded into a local **PostgreSQL** database (`credit_risk`) under the `raw` schema. PostgreSQL was chosen over file-based storage because it enforces column types, supports schema versioning, and allows JOIN operations across multiple data sources.
+Once the ETL pipeline runs, the clean loan data is loaded into a remote **PostgreSQL** database (`credit_risk`) under the `raw` schema. PostgreSQL was chosen over file-based storage because it enforces column types, supports schema versioning, and allows JOIN operations across multiple data sources.
 
 **DBeaver** was used throughout the project as the database GUI for:
 
@@ -328,7 +328,7 @@ The tuned pipeline is evaluated on the held-out test set (20% of data) using two
 **ROC AUC** measures the model's ability to rank defaulters above non-defaulters across all classification thresholds. It is threshold-agnostic and gives a single summary of discrimination ability.
 
 <p align="center" width="100%">
-  <img src="reports/output_plots/ROC-AUC-curve.png", alt="ROC-AUC Curve Plot" width="45%">
+  <img src="reports/output_plots/ROC-AUC-curve.png" alt="ROC-AUC Curve Plot" width="45%">
 </p>
 
 **Precision-Recall (PR) Curve** and **Average Precision (AP)** are the primary metrics for imbalanced classification. The PR curve shows the trade-off between how many flagged applicants are genuine defaulters (precision) and how many total defaulters are caught (recall). The baseline for a random classifier equals the population default rate (11.6%).
@@ -343,7 +343,7 @@ The tuned pipeline is evaluated on the held-out test set (20% of data) using two
 The AP score of 0.320 against a baseline of 0.116 means that when the model flags the highest-risk applicants for rejection, approximately **32% of those flagged are genuine defaulters** — compared to only 11.6% if applicants were flagged at random. This 2.76× lift represents the direct commercial value of the model in reducing bad debt exposure.
 
 <p align="center" width="100%">
-  <img src="reports/output_plots/Precision-Recall-curve.png", alt="Precision-Recall Curve Plot" width="45%">
+  <img src="reports/output_plots/Precision-Recall-curve.png" alt="Precision-Recall Curve Plot" width="45%">
 </p>
 
 ---
@@ -374,7 +374,7 @@ Top features by mean |SHAP|:
 Generated for the top 5 features. Each plot shows the relationship between a feature's raw value and its SHAP contribution, coloured by the auto-selected interaction feature. This reveals non-linear threshold effects — for example, the sharp increase in `age` risk contribution below a certain age band.
 
 <p align="center" width="100%">
-  <img src="reports/output_plots/SHAP-Beeswarm-plot.png", alt="SHAP: Beeswarm-Plot" width="45%">
+  <img src="reports/output_plots/SHAP-Beeswarm-plot.png" alt="SHAP: Beeswarm-Plot" width="45%">
 </p>
 
 **Waterfall Plots (Per-Applicant Explanation)**
@@ -441,10 +441,15 @@ To reproduce the saved model, run the training pipeline from the data sources, i
 - A USA industry-standard **fairness audit** (4/5ths rule) across employment types is partially implemented but not yet a blocking gate in the pipeline.
 
 
-Note: 
-It is worth to highlight that UK regulators such as the Financial Conduct Authority (FCA) and the Information Commissioner's Office (ICO) do not impose a strict fixed-threshold or a defined mathematical approach to lending scoring, and they simply encourage that algorithmic processing systems must not produce unjustified adverse effects or discriminatory impacts.
-For the purpose of proof-of-concept and outlining a clearer project outcome, the USA Code of Federal Regulations Adversarial Impact approach (80% percent rule, or 4/5ths of the highest score class) is applied.
-Footnotes at the end of the project will redirect the viewer for further research: [[2]](#footnotes)
+>Note: 
+>It is worth to highlight that UK regulators such as the Financial Conduct Authority (FCA) and the
+>Information Commissioner's Office (ICO) do not impose a strict fixed-threshold or a defined mathematical
+>approach to lending scoring, and they simply encourage that algorithmic processing systems must not produce
+>unjustified adverse effects or discriminatory impacts.
+>For the purpose of proof-of-concept and outlining a clearer project outcome, the USA Code of Federal
+>Regulations Adversarial Impact approach (80% percent rule, or 4/5ths of the highest score class) is applied.
+
+> Footnotes at the end of the project will redirect the viewer for further research: [[2]](#footnotes)
 
 
 **Potential next steps:**
@@ -454,14 +459,14 @@ Footnotes at the end of the project will redirect the viewer for further researc
 - Build a Streamlit dashboard for interactive applicant scoring
 - Implement automated threshold recalibration based on target bad rate
 - Add population stability index (PSI) for monitoring score drift
-- Extend Plaid enrichment to cover vast/different array of persona groups
+- Extend Plaid enrichment to cover a broader range of persona groups
 
 ---
 
 ## Author
 
 <p align="center" width="100%">
-  <img src="https://media.licdn.com/dms/image/v2/D4E03AQEdUyPJ214v6A/profile-displayphoto-scale_400_400/B4EZ0r2BM5GQAg-/0/1774557089062?e=1778716800&v=beta&t=mijF_K6kMXpY6V2LFyWVSgbs823I82DXjhQwZQrxCU4" width="15%">
+  <img alt="photo-profile" src="https://github.com/user-attachments/assets/54d8381c-d4f4-427c-bc8a-cdb9590d838d" width="15%">
 </p>
 
 <p align="center">
@@ -479,7 +484,7 @@ Footnotes at the end of the project will redirect the viewer for further researc
   </a>
   &nbsp;
   <a href="mailto:tmsbrn2019@proton.me">
-    <img src="https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email">
+    <img src="https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=protonmail&logoColor=white" alt="Email">
   </a>
 </p>
 
