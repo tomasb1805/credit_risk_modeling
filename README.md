@@ -114,6 +114,8 @@ This raw dataset was enriched using the **Plaid Sandbox API** in order to simula
 - **Credit behaviour**: credit score, number of credit lines, DTI ratio, mortgage/cosigner flags
 - **Target variable**: `default` (1 = defaulted, 0 = repaid) — **11.6% default rate**
 
+Data sources: [ [1] ](#Footnotes)
+
 ### Risk Personas
 
 Each applicant is assigned a **risk persona** during the ETL stage based on a rule hierarchy applied to their financial profile. This persona is used as a segmentation feature downstream and allows the model to handle subpopulations with structurally different risk profiles.
@@ -226,7 +228,7 @@ df_clean.to_sql(table_name, engine, schema="raw", if_exists="replace", index=Fal
 
 ---
 
-### Step 3 — Behavioural Features via Plaid API
+### Step 3 — Behavioural Features via Plaid Sandbox API 
 
 **Tool:** Plaid Sandbox API
 
@@ -259,7 +261,7 @@ Before training, several **derived features** are constructed from raw columns t
 | `credit_utilisation` | `loan_amount / (credit_score + 1)` | Loan size relative to creditworthiness |
 | `employment_stability` | `log1p(income × months_employed)` | Combined income and tenure signal, log-compressed to prevent scale distortion |
 
-The `log1p` transform on `employment_stability` is critical: the raw product of `income × months_employed` produces values in the millions, which would dominate the feature space and produce uninterpretable SHAP values. `log1p(x)` compresses the range to ~8–15, keeps the monotonic relationship intact, and handles zero values safely.
+The `log1p` transform on `employment_stability` is critical: the raw product of `income × months_employed` produces values in the millions, which would dominate the feature space and produce SHAP values of difficult human interpretability . `log1p(x)` compresses the range to ~8–15, keeps the monotonic relationship intact, and handles zero values safely.
 
 **Preprocessing** is handled by a scikit-learn `ColumnTransformer` inside the main `Pipeline`:
 
@@ -311,7 +313,9 @@ The tuned pipeline is evaluated on the held-out test set (20% of data) using two
 
 **ROC AUC** measures the model's ability to rank defaulters above non-defaulters across all classification thresholds. It is threshold-agnostic and gives a single summary of discrimination ability.
 
-reports/output_plots/ROC-AUC-curve.png
+<p align="center" width="100%">
+  <img src="reports/output_plots/ROC-AUC-curve.png", alt="ROC-AUC Curve Plot" width="45%">
+</p>
 
 **Precision-Recall (PR) Curve** and **Average Precision (AP)** are the primary metrics for imbalanced classification. The PR curve shows the trade-off between how many flagged applicants are genuine defaulters (precision) and how many total defaulters are caught (recall). The baseline for a random classifier equals the population default rate (11.6%).
 
@@ -324,7 +328,9 @@ reports/output_plots/ROC-AUC-curve.png
 
 The AP score of 0.320 against a baseline of 0.116 means that when the model flags the highest-risk applicants for rejection, approximately **32% of those flagged are genuine defaulters** — compared to only 11.6% if applicants were flagged at random. This 2.76× lift represents the direct commercial value of the model in reducing bad debt exposure.
 
-reports/output_plots/Precision-Recall-curve.png
+<p align="center" width="100%">
+  <img src="reports/output_plots/Precision-Recall-curve.png", alt="Precision-Recall Curve Plot" width="45%">
+</p>
 
 ---
 
@@ -353,21 +359,32 @@ Top features by mean |SHAP|:
 **Feature Dependence Plots**
 Generated for the top 5 features. Each plot shows the relationship between a feature's raw value and its SHAP contribution, coloured by the auto-selected interaction feature. This reveals non-linear threshold effects — for example, the sharp increase in `age` risk contribution below a certain age band.
 
-reports/output_plots/SHAP-Beeswarm-plot.png
+<p align="center" width="100%">
+  <img src="reports/output_plots/SHAP-Beeswarm-plot.png", alt="SHAP: Beeswarm-Plot" width="45%">
+</p>
 
 **Waterfall Plots (Per-Applicant Explanation)**
 One waterfall is generated for each underwriting band — an example APPROVE, REFER, and DECLINE applicant. Each waterfall shows, feature by feature, how the model arrived at a specific probability from the population baseline (`E[f(X)] = -0.337`), making the decision fully auditable.
 
-reports/output_plots/Waterfall-Approved.png
-reports/output_plots/Waterfall-Referred.png
-reports/output_plots/Waterfall-Declined.png
+<p align="center" width="100%">
+  <img src="reports/output_plots/Waterfall-Approved.png"
+       alt="Waterfall: APPROVE" width="40%">
+  <img src="reports/output_plots/Waterfall-Referred.png"
+       alt="Waterfall: REFER" width="43%">
+<p/> 
+  
+<p align="center" width="100%">  
+  <img src="reports/output_plots/Waterfall-Declined.png"
+       alt="Waterfall: DECLINE" width="45%">
+</p>
+
 ---
 
-### Step 8 — Underwriting Decision Engine
+### Step 8 — Programmatic Underwriting Decision Policy
 
 The model outputs a continuous default probability for each applicant. This probability is mapped to a three-tier underwriting decision using fixed thresholds calibrated against the acceptable bad rate for each band.
 
-_The three-tier schema thresholds are for demonstration purposes only, and do not reflect necessarily the banking industry typical approach to loan scoring._
+_The three-tier schema thresholds are for demonstration purposes only, and do not reflect necessarily the banking industry typical approach to lending scoring._
 
 
 | Decision | Probability Threshold | Interpretation |
@@ -478,8 +495,9 @@ PLAID_COUNTRY_CODES=GB
 
 
 Note: 
-While UK regulators such as the Financial Conduct Authority (FCA) and the Information Commissioner's Office (ICO) do impose a fixed threshold on scoring, but simply encourage that algorithmic processing systems must not produce unjustified adverse effects or discriminatory impacts, for the purpose of proof-of-concept and outlining a clearer project outcome, the USA Code of Federal Regulations Adversarial Impact approach (80% percent rule) is applied.
-Footnotes at the end of the project will redirect the viewer for further research[1]
+It is worth to highlight that UK regulators such as the Financial Conduct Authority (FCA) and the Information Commissioner's Office (ICO) do not impose a strict fixed-threshold or a defined mathematical approach to lending scoring, and they simply encourage that algorithmic processing systems must not produce unjustified adverse effects or discriminatory impacts.
+For the purpose of proof-of-concept and outlining a clearer project outcome, the USA Code of Federal Regulations Adversarial Impact approach (80% percent rule, or 4/5ths of the highest score class) is applied.
+Footnotes at the end of the project will redirect the viewer for further research: [ [2] ](#Footnotes)
 
 
 **Potential next steps:**
