@@ -471,7 +471,7 @@ To reproduce the saved model, run the training pipeline from the data sources, i
 
 <p align="center">
   <strong>Brian Tomassoni</strong><br>
-  <em>Data Analyst · Data Scientist · ML Engineer · Credit Risk Domain</em>
+  <em>Data Analyst · Credit Risk Domain</em>
 </p>
 
 <p align="center">
